@@ -22,7 +22,12 @@ def err_call_back(err):
         print(f'Progress exit for error: {str(err)}')
         
 def compare_file_size(f0, f1):
-    return os.stat(f0).st_size < os.stat(f1).st_size
+    if os.stat(f0).st_size < os.stat(f1).st_size:
+        return 1
+    elif os.stat(f0).st_size > os.stat(f1).st_size:
+        return -1
+    else:
+        return 0
 
 def prepare_full(
     source_path: Path,
