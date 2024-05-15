@@ -19,6 +19,9 @@ import pandas as pd
 
 def err_call_back(err):
         print(f'Progress exit for error: {str(err)}')
+        
+def compare_file_size(f0, f1):
+    return os.stat(f0).st_size < os.stat(f1).st_size
 
 def prepare_full(
     source_path: Path,
@@ -83,6 +86,8 @@ def prepare(
     # only retrain subsets that follow the prefix in filenames_subset
     if filenames_subset:
         filenames = [f for f in filenames if any([prefix in f for prefix in filenames_subset])]
+    filenames = [f for f in filenames if os.path.exists(f)]
+    filenames.sort(cmp=compare_file_size, reverse=True)
     filenames = filenames[:int(len(filenames) * percentage)]
     max_files_per_process = 20
     num_process = 4
