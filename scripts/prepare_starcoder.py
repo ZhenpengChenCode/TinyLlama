@@ -8,6 +8,7 @@ import numpy as np
 from tqdm import tqdm
 from multiprocessing import Process, Pool, cpu_count
 from functools import cmp_to_key
+import copy
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
@@ -23,9 +24,9 @@ def err_call_back(err):
         
 def compare_file_size(f0, f1):
     if os.stat(f0).st_size < os.stat(f1).st_size:
-        return 1
-    elif os.stat(f0).st_size > os.stat(f1).st_size:
         return -1
+    elif os.stat(f0).st_size > os.stat(f1).st_size:
+        return 1
     else:
         return 0
 
@@ -95,10 +96,31 @@ def prepare(
     filenames = [f for f in filenames if os.path.exists(f)]
     filenames.sort(key=cmp_to_key(compare_file_size), reverse=True)
     filenames = filenames[:int(len(filenames) * percentage)]
-    max_files_per_process = 20
+    #max_files_per_process = 20
     num_process = 4
-    total_processes = int(len(filenames) / max_files_per_process)
-    chunked_filenames = np.array_split(filenames, total_processes)
+    #total_processes = int(len(filenames) / max_files_per_process)
+    total_bytes = 32 * 1024 * 1024
+    used_bytes = int(total_bytes * 0.8)
+    bytes_each_process = int(used_bytes / num_process)
+    
+    subset = []
+    chunked_filenames = []
+    curr_subset_size = 0
+    for f in filenames:
+        f_size = os.stat(f).st_size
+        if f_size + curr_subset_size < bytes_each_process:
+            subset.append(f)
+            curr_subset_size += f_size
+        elif f_size < bytes_each_process:
+            chunked_filenames.append(copy.deepcopy(subset))
+            curr_subset_size = f_size
+            subset = [f]
+        else:
+            print("file is too large. file size: {}".format(f_size))
+            
+    if len(subset) > 0:
+        chunked_filenames.append(copy.deepcopy(subset))
+    #chunked_filenames = np.array_split(filenames, total_processes)
     
     #p = Pool(processes = num_process)
     
