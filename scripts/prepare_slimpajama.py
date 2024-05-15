@@ -6,7 +6,7 @@ import sys
 from typing import List
 import numpy as np
 from tqdm import tqdm
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process, Pool, cpu_count
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
@@ -22,6 +22,8 @@ slimpajama_sets = {
     "test": "test/chunk*/*",
 }
 
+def err_call_back(err):
+        print(f'Progress exit for error: {str(err)}')
 
 def prepare_full(
     source_path: Path,
@@ -33,6 +35,7 @@ def prepare_full(
     process_id: int = 0
 ) -> None:
     import zstandard as zstd
+    print("process_id: {}".format(process_id))
 
     destination_path.mkdir(parents=True, exist_ok=True)
 
@@ -83,24 +86,47 @@ def prepare(
     filenames = glob.glob(os.path.join(source_path, slimpajama_sets[split]), recursive=True)
     filenames = filenames[:int(len(filenames) * percentage)]
     
-    num_processes = 4 #cpu_count() 
-    chunked_filenames = np.array_split(filenames, num_processes)
-
-    processes = []
+    max_files_per_process = 100
+    num_processes = 32 #cpu_count()
+    total_processes = int(len(filenames) / max_files_per_process)
+    chunked_filenames = np.array_split(filenames, total_processes)
+    
+    p = Pool(processes=num_processes)
+    
+    #processes = []
     start_time = time.time()
-
     for i, subset in enumerate(chunked_filenames):
-        p = Process(target=prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
-        processes.append(p)
-        p.start()
+        p.apply_async(prepare_full,
+                      args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i),
+                      error_callback=err_call_back)
+    print("Waiting for all subprogresses done...")
+    print(len(p._cache))
+    p.close()
+    p.join()
+    print('All subprocesses done.')
 
-    for p in processes:
-        p.join()
+    # for i, subset in enumerate(chunked_filenames):
+    #     p = Process(target=prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
+    #     processes.append(p)
+    #     p.start()
+
+    # for p in processes:
+    #     p.join()
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Time taken: {elapsed_time:.2f} seconds")
 
 
 if __name__ == "__main__":
-    from jsonargparse import CLI
-    CLI(prepare)
+    # from jsonargparse import CLI
+    # CLI(prepare)
+    # prepare(source_path=Path("/home/baidu/dataset/SlimPajama-627B"),
+    #     tokenizer_path=Path("/home/baidu/workspace/TinyLlama-1.1B-intermediate-step-480k-1T"),
+    #     destination_path=Path("/home/baidu/workspace/TinyLlama/data/slim_star_combined"),
+    #     split='validation',
+    #     percentage=1.0)
+    prepare(source_path=Path("/home/baidu/dataset/SlimPajama-627B"),
+        tokenizer_path=Path("/home/baidu/workspace/TinyLlama-1.1B-intermediate-step-480k-1T"),
+        destination_path=Path("/home/baidu/workspace/TinyLlama/data/slim_star_combined"),
+        split='train',
+        percentage=1.0)

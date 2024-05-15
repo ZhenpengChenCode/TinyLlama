@@ -89,24 +89,40 @@ def prepare(
     total_processes = int(len(filenames) / max_files_per_process)
     chunked_filenames = np.array_split(filenames, total_processes)
     
-    p = Pool(processes = num_process)
+    #p = Pool(processes = num_process)
     
-    # processes = []
     start_time = time.time()
-    for i, subset in enumerate(chunked_filenames):
-        p.apply_async(prepare_full,
-                      args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i),
-                      error_callback=err_call_back)
-    print("Waiting for all subprocesses done...")
-    print(len(p._cache))
-    p.close()
-    p.join()
-    print('All subprocesses done.')
-
+    
     # for i, subset in enumerate(chunked_filenames):
-    #     p = Process(target=prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
-    #     processes.append(p)
-    #     p.start()
+    #     p.apply_async(prepare_full,
+    #                   args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i),
+    #                   error_callback=err_call_back)
+    # print("Waiting for all subprocesses done...")
+    # print(len(p._cache))
+    # p.close()
+    # p.join()
+    # print('All subprocesses done.')
+    
+    processes = []
+
+    for i, subset in enumerate(chunked_filenames):
+        p = Process(target=prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
+        processes.append(p)
+        #p.start()
+    
+    p_idx = 0
+    while p_idx < len(processes) - num_process:
+        for i in range(num_process):
+            processes[p_idx + i].start()
+        for i in range(num_process):
+            processes[p_idx + i].join()
+            
+        p_idx += num_process
+    
+    while p_idx < len(processes):
+        processes[p_idx].start()
+        processes[p_idx].join()
+        p_idx += 1
 
     # for p in processes:
     #     p.join()
