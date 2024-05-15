@@ -17,6 +17,8 @@ from lit_gpt import Tokenizer
 
 import pandas as pd
 
+def err_call_back(err):
+        print(f'Progress exit for error: {str(err)}')
 
 def prepare_full(
     source_path: Path,
@@ -87,13 +89,16 @@ def prepare(
     total_processes = int(len(filenames) / max_files_per_process)
     chunked_filenames = np.array_split(filenames, total_processes)
     
-    p = Pool(num_process)
+    p = Pool(processes = num_process)
     
     # processes = []
     start_time = time.time()
     for i, subset in enumerate(chunked_filenames):
-        p.apply_async(prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
+        p.apply_async(prepare_full,
+                      args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i),
+                      error_callback=err_call_back)
     print("Waiting for all subprocesses done...")
+    print(len(p._cache))
     p.close()
     p.join()
     print('All subprocesses done.')
