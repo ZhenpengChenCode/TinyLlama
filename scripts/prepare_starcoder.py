@@ -7,6 +7,7 @@ from typing import List
 import numpy as np
 from tqdm import tqdm
 from multiprocessing import Process, Pool, cpu_count
+from functools import cmp_to_key
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
@@ -87,7 +88,7 @@ def prepare(
     if filenames_subset:
         filenames = [f for f in filenames if any([prefix in f for prefix in filenames_subset])]
     filenames = [f for f in filenames if os.path.exists(f)]
-    filenames.sort(cmp=compare_file_size, reverse=True)
+    filenames.sort(key=cmp_to_key(compare_file_size), reverse=True)
     filenames = filenames[:int(len(filenames) * percentage)]
     max_files_per_process = 20
     num_process = 4
