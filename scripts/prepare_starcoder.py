@@ -99,7 +99,7 @@ def prepare(
     #max_files_per_process = 20
     num_process = 4
     #total_processes = int(len(filenames) / max_files_per_process)
-    total_bytes = 32 * 1024 * 1024
+    total_bytes = 32 * 1024 * 1024 * 1000
     used_bytes = int(total_bytes * 0.8)
     bytes_each_process = int(used_bytes / num_process)
     
