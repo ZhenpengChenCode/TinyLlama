@@ -34,18 +34,18 @@ class PackedDataset(IterableDataset):
         self._seed = seed
         self._shuffle = shuffle
         self._wrap = wrap
-        self._num_processes = num_processes
+        self._num_processes = num_processes  # 处理的进程数量
         self._process_rank = process_rank
 
     def __iter__(self):
         worker_info = get_worker_info()
-        num_workers = worker_info.num_workers if worker_info is not None else 1
-        worker_id = worker_info.id if worker_info is not None else 0
-        num_shards = num_workers * self._num_processes
+        num_workers = worker_info.num_workers if worker_info is not None else 1 # 如果是主进程，则num_worker为1，否则返回有效值
+        worker_id = worker_info.id if worker_info is not None else 0  # 主进程为None，这里将其设为0(从零开始)，其他进程会返回有效的id
+        num_shards = num_workers * self._num_processes  # 进程数量 乘以 每个进程的线程数量，得到分片数(线程数)
         shard_id = self._process_rank * num_workers + worker_id
 
-        max_num_files = len(self._filenames) // num_shards * num_shards
-        filenames = self._filenames[shard_id:max_num_files:num_shards]
+        max_num_files = len(self._filenames) // num_shards * num_shards  # 去掉无法整除的文件数量，便于每一个分片的数量是一致的
+        filenames = self._filenames[shard_id:max_num_files:num_shards]  # 切片，得到当前分片中的文件列表
 
         return PackedDatasetIterator(
             filenames=filenames,

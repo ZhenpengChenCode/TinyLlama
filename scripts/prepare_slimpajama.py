@@ -83,7 +83,7 @@ def prepare(
     filenames = glob.glob(os.path.join(source_path, slimpajama_sets[split]), recursive=True)
     filenames = filenames[:int(len(filenames) * percentage)]
     
-    num_processes = cpu_count() 
+    num_processes = 4 #cpu_count() 
     chunked_filenames = np.array_split(filenames, num_processes)
 
     processes = []

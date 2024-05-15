@@ -6,7 +6,7 @@ import sys
 from typing import List
 import numpy as np
 from tqdm import tqdm
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process, Pool, cpu_count
 
 # support running without installing as a package
 wd = Path(__file__).parent.parent.resolve()
@@ -82,24 +82,42 @@ def prepare(
     if filenames_subset:
         filenames = [f for f in filenames if any([prefix in f for prefix in filenames_subset])]
     filenames = filenames[:int(len(filenames) * percentage)]
-    num_processes = 64
-    chunked_filenames = np.array_split(filenames, num_processes)
-
-    processes = []
+    max_files_per_process = 20
+    num_process = 4
+    total_processes = int(len(filenames) / max_files_per_process)
+    chunked_filenames = np.array_split(filenames, total_processes)
+    
+    p = Pool(num_process)
+    
+    # processes = []
     start_time = time.time()
-
     for i, subset in enumerate(chunked_filenames):
-        p = Process(target=prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
-        processes.append(p)
-        p.start()
+        p.apply_async(prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
+    print("Waiting for all subprocesses done...")
+    p.close()
+    p.join()
+    print('All subprocesses done.')
 
-    for p in processes:
-        p.join()
+    # for i, subset in enumerate(chunked_filenames):
+    #     p = Process(target=prepare_full, args=(source_path, tokenizer_path, destination_path, chunk_size, split, list(subset), i))
+    #     processes.append(p)
+    #     p.start()
+
+    # for p in processes:
+    #     p.join()
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Time taken: {elapsed_time:.2f} seconds")
 
 
 if __name__ == "__main__":
-    from jsonargparse import CLI
-    CLI(prepare)
+    #from jsonargparse import CLI
+    #CLI(prepare)
+    #python3 scripts/prepare_starcoder.py --source_path /path/to/starcoderdata/ --tokenizer_path data/llama --destination_path data/slim_star_combined --split train --percentage 1.0
+    #python3 scripts/prepare_slimpajama.py --source_path /path/to/SlimPajama --tokenizer_path data/llama  --destination_path data/slim_star_combined --split validation --percentage 1.0
+    #python3 scripts/prepare_slimpajama.py --source_path /path/to/SlimPajama --tokenizer_path data/llama  --destination_path data/slim_star_combined --split train --percentage 1.0
+    prepare(source_path=Path("/home/baidu/dataset/starcoderdata"),
+            tokenizer_path=Path("/home/baidu/workspace/TinyLlama-1.1B-intermediate-step-480k-1T"),
+            destination_path=Path("/home/baidu/workspace/TinyLlama/data/slim_star_combined"),
+            split='train',
+            percentage=1.0)
