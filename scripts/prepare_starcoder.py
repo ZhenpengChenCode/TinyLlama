@@ -96,31 +96,31 @@ def prepare(
     filenames = [f for f in filenames if os.path.exists(f)]
     filenames.sort(key=cmp_to_key(compare_file_size), reverse=True)
     filenames = filenames[:int(len(filenames) * percentage)]
-    #max_files_per_process = 20
-    num_process = 4
-    #total_processes = int(len(filenames) / max_files_per_process)
-    total_bytes = 32 * 1024 * 1024 * 1000
-    used_bytes = int(total_bytes * 0.8)
-    bytes_each_process = int(used_bytes / num_process)
+    max_files_per_process = 1
+    num_process = 6
+    total_processes = int(len(filenames) / max_files_per_process)
+    # total_bytes = 32 * 1024 * 1024 * 1000
+    # used_bytes = int(total_bytes * 0.8)
+    # bytes_each_process = int(used_bytes / num_process * 0.8)
     
-    subset = []
-    chunked_filenames = []
-    curr_subset_size = 0
-    for f in filenames:
-        f_size = os.stat(f).st_size
-        if f_size + curr_subset_size < bytes_each_process:
-            subset.append(f)
-            curr_subset_size += f_size
-        elif f_size < bytes_each_process:
-            chunked_filenames.append(copy.deepcopy(subset))
-            curr_subset_size = f_size
-            subset = [f]
-        else:
-            print("file is too large. file size: {}".format(f_size))
+    # subset = []
+    # chunked_filenames = []
+    # curr_subset_size = 0
+    # for f in filenames:
+    #     f_size = os.stat(f).st_size
+    #     if f_size + curr_subset_size < bytes_each_process:
+    #         subset.append(f)
+    #         curr_subset_size += f_size
+    #     elif f_size < bytes_each_process:
+    #         chunked_filenames.append(copy.deepcopy(subset))
+    #         curr_subset_size = f_size
+    #         subset = [f]
+    #     else:
+    #         print("file is too large. file size: {}".format(f_size))
             
-    if len(subset) > 0:
-        chunked_filenames.append(copy.deepcopy(subset))
-    #chunked_filenames = np.array_split(filenames, total_processes)
+    # if len(subset) > 0:
+    #     chunked_filenames.append(copy.deepcopy(subset))
+    chunked_filenames = np.array_split(filenames, total_processes)
     
     #p = Pool(processes = num_process)
     

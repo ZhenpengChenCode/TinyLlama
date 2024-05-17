@@ -28,10 +28,10 @@ name = "tinyllama_1b"
 out_dir = Path("out") / name
 
 # Hyperparameters
-num_of_devices = 8
-global_batch_size = 512
-learning_rate = 4e-4
-micro_batch_size = 8
+num_of_devices = 8          # 应该是显卡的数量
+global_batch_size = 512     # 全局batch_size
+learning_rate = 4e-4        # 学习率
+micro_batch_size = 8        # 小批量学习
 max_step = 715256 * 2
 warmup_steps = 2000
 log_step_interval = 10
@@ -48,7 +48,7 @@ decay_lr = True
 min_lr = 4e-5
 
 batch_size = global_batch_size // num_of_devices
-gradient_accumulation_steps = batch_size // micro_batch_size
+gradient_accumulation_steps = batch_size // micro_batch_size  # 小批量累计多少步梯度下降一次，等于将一个批次分成多个
 assert gradient_accumulation_steps > 0
 warmup_iters = warmup_steps * gradient_accumulation_steps
 
